@@ -1,0 +1,21 @@
+type: Ours
+loss_epoch_num: 100
+loss_lr: 0.001
+num_samples: 1
+
+epoch_num: 100
+lr: 0.001
+batch_size: 5
+train_rate: 0.9
+patience: 100
+verbose: 1
+
+n_iter: 200
+max_iter: 100
+
+n_layers: 1
+layer_size: 500
+
+lambda_val: 20
+
+sample_lr: 0.00001

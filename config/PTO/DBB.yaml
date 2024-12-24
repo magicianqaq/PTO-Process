@@ -1,0 +1,4 @@
+type: DBB
+epoch_num: 10000
+lr: 0.0001
+lambda_val: 20

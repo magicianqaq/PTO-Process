@@ -1,0 +1,14 @@
+train_rate_all: 0.1
+
+train_rate_pre: 0.9
+batch_size_pre: 5  
+
+train_rate_pto: 0.9
+batch_size_pto: 5  
+
+train_rate_loss: 0.9
+batch_size_loss: 5
+
+
+
+

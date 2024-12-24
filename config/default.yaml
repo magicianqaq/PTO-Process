@@ -1,0 +1,12 @@
+pre_file: CNN
+opt_file: SP
+pto_file: DBB
+tr_file: default
+te_file: default
+ds_file: default
+verbose: 0
+best_model_path: 'data/best_model.pth'
+seed: 42
+time_limit: 9000
+warm_start: 0
+process_type: tr

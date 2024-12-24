@@ -1,0 +1,11 @@
+type: LODLs
+loss_epoch_num: 100
+loss_lr: 0.001
+num_samples: 1
+
+epoch_num: 10000
+lr: 0.001
+batch_size: 5
+train_rate: 1
+patience: 100
+verbose: 1
