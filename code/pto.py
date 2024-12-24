@@ -129,7 +129,7 @@ class DBB():
 
         return model 
 
-#°°∂ÀµΩ∂À≤„µƒ…Ëº∆£¨ «SPOÀ„∑®µƒπÿº¸
+#„ÄÄÁ´ØÂà∞Á´ØÂ±ÇÁöÑËÆæËÆ°ÔºåÊòØSPOÁÆóÊ≥ïÁöÑÂÖ≥ÈîÆ
 class SP_SPO(torch.autograd.Function):
 
     @staticmethod
@@ -223,7 +223,7 @@ class LODLs():
         # train loss
         # y_pred, loss = samples
         # y is feature, loss is target, model is your setting
-        # y is the feature(X), loss is the label(Y), model is the custom model£¨and learned loss is the loss function
+        # y is the feature(X), loss is the label(Y), model is the custom modelÔºåand learned loss is the loss function
         Ys, opt_objectives, Yhats, objectives = self.get_samples(train_dataset, self.device, self.num_samples, self.solver)
         learned_loss = self.learned_loss_train(Ys, opt_objectives, Yhats, objectives, self.params)
         check_point(model)
@@ -491,11 +491,11 @@ class Lancer():
 
     def get_samples(self, X, Y, Z_true, adds, model):
         print("sample now")
-        # ªÒ»°‘§≤‚÷µ
+        # Ëé∑ÂèñÈ¢ÑÊµãÂÄº
         Y_pred = model(X)
         objectives = []
         for i in range(len(X)):
-            # ªÒ»°ƒø±Í∫Ø ˝÷µ
+            # Ëé∑ÂèñÁõÆÊ†áÂáΩÊï∞ÂÄº
             opt_objective, objective = get_obj(Y[i].unsqueeze(0), Y_pred[i].unsqueeze(0), Z_true[i].unsqueeze(0), adds[i].unsqueeze(0), self.solver)
             objectives.append(objective)
         objectives = torch.stack(objectives).to(self.device)
@@ -644,171 +644,6 @@ _str_to_activation = {
     'softplus': nn.Softplus(),
     'identity': nn.Identity(),
 }
-
-class Ours():
-    def __init__(self, p_pto, p_ds, solver, device):
-        self.p_pto = p_pto
-        self.type = p_pto['type']
-        self.lr = p_pto['lr']
-        self.epoch_num = p_pto['epoch_num']
-
-        self.loss_epoch_num = p_pto['loss_epoch_num']
-        self.loss_lr = p_pto['loss_lr']
-        self.num_samples = p_pto['num_samples']
-        self.sample_lr = p_pto['sample_lr']
-        self.n_iter = p_pto['n_iter']
-        self.params = p_pto
-
-        self.n_layers = p_pto['n_layers']
-        self.layer_size = p_pto['layer_size']
-        self.max_iter = p_pto['max_iter']
-
-        self.p_ds = p_ds
-        self.train_rate_pto = p_ds['train_rate_pto']
-        self.batch_size_pto = p_ds['batch_size_pto']
-
-        self.train_rate_loss = p_ds['train_rate_loss']
-        self.batch_size_loss = p_ds['batch_size_loss']
-
-        self.lambda_val = p_pto['lambda_val']
-
-        self.solver = solver
-        self.device = device
-
-        self.lp = SP_DBB.apply
-        
-    def __call__(self, train_dataset, model, check_point):
-
-        train_loader = DataLoader(train_dataset, batch_size=len(train_dataset))
-        for get in enumerate(train_loader):
-            idx, (X, Y, adds) = get
-        print("solve")
-        Z_true = self.solver(Y, Y, adds).to(torch.float32)
-        print(Z_true.shape)
-
-        check_point(model, must_check=True)
-        for i in range(self.n_iter):
-            Y_pred, objectives, model = self.get_samples(X, Z_true, adds, model)
-            check_point(model, must_check=True)
-
-            learned_loss = self.learned_loss_train(Y, Y_pred, objectives)
-            model = self.pto_train(train_dataset, learned_loss, model, check_point, i)
-            check_point(model, must_check=True)
-        return model 
-
-    def get_loss_one_batch(self, z_pred, z_target):
-        return 0.5*((z_target - z_pred)**2)
-
-    def losses_mean(self, losses):
-        return losses.sum() / losses.shape[0]
-
-    def get_samples(self, X, Z_true, adds, model):
-        print("sample now")
-        dataset = MyDataset(X, Z_true, adds)
-        train_loader = DataLoader(dataset, batch_size=len(dataset), shuffle=False)
-        # get losses
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.sample_lr)
-        for tr in enumerate(train_loader):
-            tr_loss = 0
-            i_batch, (x, z_true, adds) = tr
-            model.train()
-            y_pred = model(x).to(self.device)
-            z_pred = self.lp(y_pred, self.lambda_val, adds, self.solver, self.device)
-            loss_one_batch = self.get_loss_one_batch(z_pred, z_true)
-            
-            if i_batch == 0:
-                y_preds = y_pred
-                losses = loss_one_batch
-            else:
-                y_preds = torch.cat((y_preds, y_pred), dim=0)
-                losses = torch.cat((losses, loss_one_batch), dim=0)
-
-            loss = self.losses_mean(loss_one_batch)
-            tr_loss += loss.item()
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        y_preds = y_preds.to(self.device)
-        losses = losses.to(self.device)
-        print('sample done')
-        return y_preds, losses, model
-
-    def learned_loss_train(self, Y, Y_pred, objectives):
-        print("learn loss")
-        # Load a model
-        Y = torch.flatten(Y, start_dim=1)
-        Y_pred = torch.flatten(Y_pred, start_dim=1)
-        self.z_dim = Y.shape[-1]
-        self.f_dim = objectives.shape[-1]
-        self.model = MLPLancer(self.z_dim, self.f_dim, self.n_layers, self.layer_size, 'relu').to(self.device)
-        N = Y.shape[0]
-        batch_size = self.batch_size_loss
-        n_batches = int(N / batch_size)
-        total_iter = 0
-        print_freq = 5
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.sample_lr)
-        while total_iter < self.max_iter:
-            rand_indices = np.random.permutation(N)
-            for bi in range(n_batches + 1):
-                self.model.train()
-                idxs = rand_indices[bi * batch_size: (bi + 1) * batch_size]
-                Y_batch = Y[idxs]
-                Y_pred_batch = Y_pred[idxs]
-                objectives_batch = objectives[idxs]
-                loss_i = self.learned_loss_one_batch(Y_batch, Y_pred_batch, objectives_batch)
-                total_iter += 1
-                if total_iter % print_freq == 0:
-                    print("****** Fitting target model C, itr: ", total_iter, ", lancer loss: ", loss_i, flush=True)
-                if total_iter >= self.max_iter:
-                    break
-        print("learn loss done")
-        return self.model
-
-
-    def learned_loss_one_batch(self, Y, Y_pred, objectives):
-        Y = Y.detach()
-        Y_pred = Y_pred.detach()
-        objectives = objectives.detach()
-        self.optimizer.zero_grad()
-        pred = self.model(Y, Y_pred)
-        loss = MSE(pred, objectives)
-        loss.backward()
-        self.optimizer.step()
-        return loss.item()
-
-    def pto_train(self, train_dataset, learned_loss, model, check_point, i):
-        print("train now")
-        batch_size = self.params['batch_size']
-        lr = self.params['lr']
-        epoch_num = self.params['epoch_num']
-        device = self.device
-        # input train dataset, learned loss, model, output trained model
-        train_loader = DataLoader(train_dataset, batch_size=batch_size)
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-
-        # train 
-        for epoch in range(0, epoch_num):
-            # model train
-            tr_loss = 0
-            model.train()
-            for tr in enumerate(train_loader):
-                i_batch, (tr_X, tr_Y, add) = tr
-                pred = model(tr_X)
-                Y = torch.flatten(tr_Y, start_dim=1)
-                Y_pred = torch.flatten(pred, start_dim=1)
-                loss = learned_loss(Y, Y_pred).mean()
-                tr_loss += loss.item()
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-            if i <= 1:
-                check_point(model, must_check=True)
-            else:
-                check_point(model)
-        print("train done")
-        return model
-
 
 class MyDataset(Dataset):
         def __init__(self, X, Z, adds):
